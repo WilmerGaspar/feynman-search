@@ -4,6 +4,7 @@ description: Compare a paper's claims against its public codebase and identify m
 Audit the paper and codebase for: $@
 
 Requirements:
+- Prefer the `researcher` subagent for evidence gathering and the `verifier` subagent for the mismatch pass when the audit is non-trivial.
 - Identify the canonical paper first with `alpha_search` and `alpha_get_paper`.
 - Extract implementation-sensitive claims with `alpha_ask_paper`.
 - If a public repo exists, inspect it with `alpha_read_code`.

@@ -4,6 +4,7 @@ description: Build a prioritized reading list on a research topic with rationale
 Create a research reading list for: $@
 
 Requirements:
+- Use the `researcher` subagent when a wider literature sweep would help before curating the final list.
 - If the topic is academic, use `alpha_search` with `all` mode.
 - If the topic is current, product-oriented, or asks for the latest landscape, use `web_search` and `fetch_content` first, then add `alpha_search` for academic background when relevant.
 - Inspect the strongest papers or primary sources directly before recommending them.

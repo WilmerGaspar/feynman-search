@@ -1,4 +1,5 @@
 import { execFile, spawn } from "node:child_process";
+import { createRequire } from "node:module";
 import { mkdir, mkdtemp, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, extname, join, resolve as resolvePath } from "node:path";
@@ -10,7 +11,11 @@ import {
 	clearPaperAnnotation,
 	disconnect,
 	getPaper,
+	getUserName as getAlphaUserName,
+	isLoggedIn as isAlphaLoggedIn,
 	listPaperAnnotations,
+	login as loginAlpha,
+	logout as logoutAlpha,
 	readPaperCode,
 	searchPapers,
 } from "@companion-ai/alpha-hub/lib";
@@ -18,6 +23,15 @@ import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-age
 import { Type } from "@sinclair/typebox";
 
 const execFileAsync = promisify(execFile);
+const require = createRequire(import.meta.url);
+const FEYNMAN_VERSION = (() => {
+	try {
+		const pkg = require("../package.json") as { version?: string };
+		return pkg.version ?? "dev";
+	} catch {
+		return "dev";
+	}
+})();
 
 function formatToolText(result: unknown): string {
 	return typeof result === "string" ? result : JSON.stringify(result, null, 2);
@@ -414,6 +428,170 @@ async function renderPdfPreview(filePath: string): Promise<string> {
 	return pdfPath;
 }
 
+function formatHeaderPath(path: string): string {
+	const home = homedir();
+	return path.startsWith(home) ? `~${path.slice(home.length)}` : path;
+}
+
+function truncateForWidth(text: string, width: number): string {
+	if (width <= 0) {
+		return "";
+	}
+
+	if (text.length <= width) {
+		return text;
+	}
+
+	if (width <= 3) {
+		return ".".repeat(width);
+	}
+
+	return `${text.slice(0, width - 3)}...`;
+}
+
+function padCell(text: string, width: number): string {
+	const truncated = truncateForWidth(text, width);
+	return `${truncated}${" ".repeat(Math.max(0, width - truncated.length))}`;
+}
+
+function wrapForWidth(text: string, width: number, maxLines: number): string[] {
+	if (width <= 0 || maxLines <= 0) {
+		return [];
+	}
+
+	const normalized = text.replace(/\s+/g, " ").trim();
+	if (!normalized) {
+		return [];
+	}
+
+	const words = normalized.split(" ");
+	const lines: string[] = [];
+	let current = "";
+
+	for (const word of words) {
+		const candidate = current ? `${current} ${word}` : word;
+		if (candidate.length <= width) {
+			current = candidate;
+			continue;
+		}
+
+		if (current) {
+			lines.push(current);
+			if (lines.length === maxLines) {
+				lines[maxLines - 1] = truncateForWidth(lines[maxLines - 1], width);
+				return lines;
+			}
+		}
+
+		current = word.length <= width ? word : truncateForWidth(word, width);
+	}
+
+	if (current && lines.length < maxLines) {
+		lines.push(current);
+	}
+
+	return lines;
+}
+
+function getCurrentModelLabel(ctx: ExtensionContext): string {
+	if (ctx.model) {
+		return `${ctx.model.provider}/${ctx.model.id}`;
+	}
+
+	const branch = ctx.sessionManager.getBranch();
+	for (let index = branch.length - 1; index >= 0; index -= 1) {
+		const entry = branch[index];
+		if (entry.type === "model_change") {
+			return `${entry.provider}/${entry.modelId}`;
+		}
+	}
+
+	return "model not set";
+}
+
+function getRecentActivitySummary(ctx: ExtensionContext): string {
+	const branch = ctx.sessionManager.getBranch();
+	for (let index = branch.length - 1; index >= 0; index -= 1) {
+		const entry = branch[index];
+		if (entry.type !== "message") {
+			continue;
+		}
+
+		const text = extractMessageText(entry.message).replace(/\s+/g, " ").trim();
+		if (!text) {
+			continue;
+		}
+
+		const role = entry.message.role === "assistant"
+			? "agent"
+			: entry.message.role === "user"
+				? "you"
+				: entry.message.role;
+		return `${role}: ${text}`;
+	}
+
+	return "No messages yet in this session.";
+}
+
+function buildTitledBorder(width: number, title: string): { left: string; right: string } {
+	const gap = Math.max(0, width - title.length);
+	const left = Math.floor(gap / 2);
+	return {
+		left: "─".repeat(left),
+		right: "─".repeat(gap - left),
+	};
+}
+
+function formatShortcutLine(command: string, description: string, width: number): string {
+	const commandWidth = Math.min(18, Math.max(13, Math.floor(width * 0.3)));
+	return truncateForWidth(`${padCell(command, commandWidth)} ${description}`, width);
+}
+
+async function pathExists(path: string): Promise<boolean> {
+	try {
+		await stat(path);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+function buildProjectAgentsTemplate(): string {
+	return `# Feynman Project Guide
+
+This file is read automatically at startup. It is the durable project memory for Feynman.
+
+## Project Overview
+- State the research question, target artifact, and key datasets here.
+
+## Ground Rules
+- Do not modify raw data in \`Data/Raw/\` or equivalent raw-data folders.
+- Read first, act second: inspect project structure and existing notes before making changes.
+- Prefer durable artifacts in \`notes/\`, \`outputs/\`, \`experiments/\`, and \`papers/\`.
+- Keep strong claims source-grounded. Include direct URLs in final writeups.
+
+## Current Status
+- Replace this section with the latest project status, known issues, and next steps.
+
+## Session Logging
+- Use \`/log\` at the end of meaningful sessions to write a durable session note into \`notes/session-logs/\`.
+`;
+}
+
+function buildSessionLogsReadme(): string {
+	return `# Session Logs
+
+Use \`/log\` to write one durable note per meaningful Feynman session.
+
+Recommended contents:
+- what was done
+- strongest findings
+- artifacts written
+- unresolved questions
+- next steps
+`;
+}
+
 export default function researchTools(pi: ExtensionAPI): void {
 	function installFeynmanHeader(ctx: ExtensionContext): void {
 		if (!ctx.hasUI) {
@@ -421,13 +599,101 @@ export default function researchTools(pi: ExtensionAPI): void {
 		}
 
 		ctx.ui.setHeader((_tui, theme) => ({
-			render(_width: number): string[] {
-				return [
-					"",
-					`${theme.fg("accent", theme.bold("Feynman"))}${theme.fg("muted", "  research agent")}`,
-					theme.fg("dim", "sources first  •  memory on  •  scheduled research ready"),
-					"",
+			render(width: number): string[] {
+				const maxAvailableWidth = Math.max(width - 2, 1);
+				const preferredWidth = Math.min(104, Math.max(56, width - 4));
+				const cardWidth = Math.min(maxAvailableWidth, preferredWidth);
+				const innerWidth = cardWidth - 2;
+				const outerPadding = " ".repeat(Math.max(0, Math.floor((width - cardWidth) / 2)));
+				const title = truncateForWidth(` Feynman v${FEYNMAN_VERSION} `, innerWidth);
+				const titledBorder = buildTitledBorder(innerWidth, title);
+				const modelLabel = getCurrentModelLabel(ctx);
+				const sessionLabel = ctx.sessionManager.getSessionName()?.trim() || "default session";
+				const directoryLabel = formatHeaderPath(ctx.cwd);
+				const recentActivity = getRecentActivitySummary(ctx);
+				const shortcuts = [
+					["/lit", "survey papers on a topic"],
+					["/deepresearch", "run a source-heavy research pass"],
+					["/draft", "draft a paper-style writeup"],
+					["/jobs", "inspect active background work"],
 				];
+				const lines: string[] = [];
+
+				const push = (line: string): void => {
+					lines.push(`${outerPadding}${line}`);
+				};
+
+				const renderBoxLine = (content: string): string =>
+					`${theme.fg("borderMuted", "│")}${content}${theme.fg("borderMuted", "│")}`;
+				const renderDivider = (): string =>
+					`${theme.fg("borderMuted", "├")}${theme.fg("borderMuted", "─".repeat(innerWidth))}${theme.fg("borderMuted", "┤")}`;
+				const styleAccentCell = (text: string, cellWidth: number): string =>
+					theme.fg("accent", theme.bold(padCell(text, cellWidth)));
+				const styleMutedCell = (text: string, cellWidth: number): string =>
+					theme.fg("muted", padCell(text, cellWidth));
+
+				push("");
+				push(
+					theme.fg("borderMuted", `╭${titledBorder.left}`) +
+						theme.fg("accent", theme.bold(title)) +
+						theme.fg("borderMuted", `${titledBorder.right}╮`),
+				);
+
+				if (innerWidth < 88) {
+					const activityLines = wrapForWidth(recentActivity, innerWidth, 2);
+					push(renderBoxLine(padCell("", innerWidth)));
+					push(renderBoxLine(theme.fg("accent", theme.bold(padCell("Research session ready", innerWidth)))));
+					push(renderBoxLine(padCell(`model: ${modelLabel}`, innerWidth)));
+					push(renderBoxLine(padCell(`session: ${sessionLabel}`, innerWidth)));
+					push(renderBoxLine(padCell(`directory: ${directoryLabel}`, innerWidth)));
+					push(renderDivider());
+					push(renderBoxLine(theme.fg("accent", theme.bold(padCell("Quick starts", innerWidth)))));
+					for (const [command, description] of shortcuts) {
+						push(renderBoxLine(padCell(formatShortcutLine(command, description, innerWidth), innerWidth)));
+					}
+					push(renderDivider());
+					push(renderBoxLine(theme.fg("accent", theme.bold(padCell("Recent activity", innerWidth)))));
+					for (const activityLine of activityLines.length > 0 ? activityLines : ["No messages yet in this session."]) {
+						push(renderBoxLine(padCell(activityLine, innerWidth)));
+					}
+				} else {
+					const leftWidth = Math.min(44, Math.max(38, Math.floor(innerWidth * 0.43)));
+					const rightWidth = innerWidth - leftWidth - 3;
+					const activityLines = wrapForWidth(recentActivity, innerWidth, 2);
+					const row = (
+						left: string,
+						right: string,
+						options?: { leftAccent?: boolean; rightAccent?: boolean; leftMuted?: boolean; rightMuted?: boolean },
+					): string => {
+						const leftCell = options?.leftAccent
+							? styleAccentCell(left, leftWidth)
+							: options?.leftMuted
+								? styleMutedCell(left, leftWidth)
+								: padCell(left, leftWidth);
+						const rightCell = options?.rightAccent
+							? styleAccentCell(right, rightWidth)
+							: options?.rightMuted
+								? styleMutedCell(right, rightWidth)
+								: padCell(right, rightWidth);
+						return renderBoxLine(`${leftCell}${theme.fg("borderMuted", " │ ")}${rightCell}`);
+					};
+
+					push(renderBoxLine(padCell("", innerWidth)));
+					push(row("Research session ready", "Quick starts", { leftAccent: true, rightAccent: true }));
+					push(row(`model: ${modelLabel}`, formatShortcutLine(shortcuts[0][0], shortcuts[0][1], rightWidth)));
+					push(row(`session: ${sessionLabel}`, formatShortcutLine(shortcuts[1][0], shortcuts[1][1], rightWidth)));
+					push(row(`directory: ${directoryLabel}`, formatShortcutLine(shortcuts[2][0], shortcuts[2][1], rightWidth)));
+					push(row("ask naturally; slash commands are optional", formatShortcutLine(shortcuts[3][0], shortcuts[3][1], rightWidth), { leftMuted: true }));
+					push(renderDivider());
+					push(renderBoxLine(theme.fg("accent", theme.bold(padCell("Recent activity", innerWidth)))));
+					for (const activityLine of activityLines.length > 0 ? activityLines : ["No messages yet in this session."]) {
+						push(renderBoxLine(padCell(activityLine, innerWidth)));
+					}
+				}
+
+				push(theme.fg("borderMuted", `╰${"─".repeat(innerWidth)}╯`));
+				push("");
+				return lines;
 			},
 			invalidate() {},
 		}));
@@ -439,6 +705,75 @@ export default function researchTools(pi: ExtensionAPI): void {
 
 	pi.on("session_switch", async (_event, ctx) => {
 		installFeynmanHeader(ctx);
+	});
+
+	pi.registerCommand("alpha-login", {
+		description: "Sign in to alphaXiv from inside Feynman.",
+		handler: async (_args, ctx) => {
+			if (isAlphaLoggedIn()) {
+				const name = getAlphaUserName();
+				ctx.ui.notify(name ? `alphaXiv already connected as ${name}` : "alphaXiv already connected", "info");
+				return;
+			}
+
+			await loginAlpha();
+			const name = getAlphaUserName();
+			ctx.ui.notify(name ? `alphaXiv connected as ${name}` : "alphaXiv login complete", "info");
+		},
+	});
+
+	pi.registerCommand("alpha-logout", {
+		description: "Clear alphaXiv auth from inside Feynman.",
+		handler: async (_args, ctx) => {
+			logoutAlpha();
+			ctx.ui.notify("alphaXiv auth cleared", "info");
+		},
+	});
+
+	pi.registerCommand("alpha-status", {
+		description: "Show alphaXiv authentication status.",
+		handler: async (_args, ctx) => {
+			if (!isAlphaLoggedIn()) {
+				ctx.ui.notify("alphaXiv not connected", "warning");
+				return;
+			}
+
+			const name = getAlphaUserName();
+			ctx.ui.notify(name ? `alphaXiv connected as ${name}` : "alphaXiv connected", "info");
+		},
+	});
+
+	pi.registerCommand("init", {
+		description: "Initialize AGENTS.md and session-log folders for a research project.",
+		handler: async (_args, ctx) => {
+			const agentsPath = resolvePath(ctx.cwd, "AGENTS.md");
+			const notesDir = resolvePath(ctx.cwd, "notes");
+			const sessionLogsDir = resolvePath(notesDir, "session-logs");
+			const sessionLogsReadmePath = resolvePath(sessionLogsDir, "README.md");
+			const created: string[] = [];
+			const skipped: string[] = [];
+
+			await mkdir(notesDir, { recursive: true });
+			await mkdir(sessionLogsDir, { recursive: true });
+
+			if (!(await pathExists(agentsPath))) {
+				await writeFile(agentsPath, buildProjectAgentsTemplate(), "utf8");
+				created.push("AGENTS.md");
+			} else {
+				skipped.push("AGENTS.md");
+			}
+
+			if (!(await pathExists(sessionLogsReadmePath))) {
+				await writeFile(sessionLogsReadmePath, buildSessionLogsReadme(), "utf8");
+				created.push("notes/session-logs/README.md");
+			} else {
+				skipped.push("notes/session-logs/README.md");
+			}
+
+			const createdSummary = created.length > 0 ? `created: ${created.join(", ")}` : "created: nothing";
+			const skippedSummary = skipped.length > 0 ? `; kept existing: ${skipped.join(", ")}` : "";
+			ctx.ui.notify(`${createdSummary}${skippedSummary}`, "info");
+		},
 	});
 
 	pi.registerTool({

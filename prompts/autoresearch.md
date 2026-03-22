@@ -4,6 +4,8 @@ description: Turn a research idea into a paper-oriented end-to-end run with lite
 Run an autoresearch workflow for: $@
 
 Requirements:
+- Prefer the project `auto` chain or the `planner` + `researcher` + `verifier` + `writer` subagents when the task is broad enough to benefit from decomposition.
+- If the run is likely to take a while, or the user wants it detached, launch the subagent workflow in background with `clarify: false, async: true` and report how to inspect status.
 - Start by clarifying the research objective, scope, and target contribution.
 - Search for the strongest relevant primary sources first.
 - If the topic is current, product-oriented, market-facing, or asks about latest developments, start with `web_search` and `fetch_content`.

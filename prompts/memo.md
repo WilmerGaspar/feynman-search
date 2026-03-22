@@ -4,6 +4,7 @@ description: Produce a general research memo grounded in explicit sources and di
 Write a research memo about: $@
 
 Requirements:
+- Use the `researcher` and `writer` subagents when decomposition will improve quality or reduce context pressure.
 - Start by finding the strongest relevant sources.
 - If the topic is current, market-facing, product-oriented, regulatory, or asks about latest developments, use `web_search` and `fetch_content` first.
 - Use `alpha_search` for academic background where relevant, but do not rely on it alone for current topics.

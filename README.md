@@ -57,17 +57,32 @@ Most users should not need slash commands. The intended default is:
 Inside the REPL:
 
 - `/help` shows local commands
+- `/init` bootstraps `AGENTS.md` and `notes/session-logs/`
+- `/alpha-login` signs in to alphaXiv
+- `/alpha-status` checks alphaXiv auth
 - `/new` starts a new persisted session
 - `/exit` quits
-- `/lit-review <topic>` expands the literature-review prompt template
+- `/lit <topic>` expands the literature-review prompt template
 - `/replicate <paper or claim>` expands the replication prompt template
-- `/reading-list <topic>` expands the reading-list prompt template
-- `/research-memo <topic>` expands the general research memo prompt template
+- `/reading <topic>` expands the reading-list prompt template
+- `/memo <topic>` expands the general research memo prompt template
 - `/deepresearch <topic>` expands the thorough source-heavy research prompt template
 - `/autoresearch <idea>` expands the end-to-end idea-to-paper prompt template
-- `/compare-sources <topic>` expands the source comparison prompt template
-- `/paper-code-audit <item>` expands the paper/code audit prompt template
-- `/paper-draft <topic>` expands the paper-style writing prompt template
+- `/compare <topic>` expands the source comparison prompt template
+- `/audit <item>` expands the paper/code audit prompt template
+- `/draft <topic>` expands the paper-style writing prompt template
+- `/log` writes a durable session log to `notes/`
+- `/watch <topic>` schedules or prepares a recurring research watch
+- `/jobs` inspects active background work
+
+Package-powered workflows inside the REPL:
+
+- `/agents` opens the subagent and chain manager
+- `/run`, `/chain`, and `/parallel` delegate work to subagents
+- `/ps` opens the background process panel
+- `/schedule-prompt` manages recurring and deferred jobs
+- `/search` opens indexed session search
+- `/preview` previews generated artifacts in the terminal, browser, or PDF
 
 Outside the REPL:
 
@@ -89,6 +104,14 @@ The starter extension adds:
 - `alpha_read_code` for reading a paper repository
 - `session_search` for recovering prior Feynman work from stored transcripts
 - `preview_file` for browser/PDF review of generated artifacts
+
+Feynman also ships bundled research subagents in `.pi/agents/`:
+
+- `researcher` for evidence gathering
+- `verifier` for claim and source checking
+- `writer` for polished memo and draft writing
+- `deep` chain for gather → verify → synthesize
+- `auto` chain for plan → gather → verify → draft
 
 Feynman uses `@companion-ai/alpha-hub` directly in-process rather than shelling out to the CLI.
 
@@ -115,6 +138,7 @@ The default expectation is source-grounded outputs with explicit `Sources` secti
 
 ```text
 feynman/
+├── .pi/agents/   # Bundled research subagents and chains
 ├── extensions/   # Custom research tools
 ├── papers/       # Polished paper-style drafts and writeups
 ├── prompts/      # Slash-style prompt templates

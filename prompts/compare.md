@@ -4,6 +4,7 @@ description: Compare multiple sources on a topic and produce a source-grounded m
 Compare sources for: $@
 
 Requirements:
+- Use the `researcher` subagent to gather source material when the comparison set is broad, and the `verifier` subagent to pressure-test the resulting matrix when needed.
 - Identify the strongest relevant primary sources first.
 - For current or market-facing topics, use `web_search` and `fetch_content` to gather up-to-date primary sources before comparing them.
 - For academic claims, use `alpha_search` and inspect the strongest papers directly.

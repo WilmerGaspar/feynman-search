@@ -4,6 +4,7 @@ description: Turn research findings into a polished paper-style draft with equat
 Write a paper-style draft for: $@
 
 Requirements:
+- Prefer the `writer` subagent when the draft should be produced from already-collected notes, and use `verifier` first if the evidence still looks shaky.
 - Ground every claim in inspected sources, experiments, or explicit inference.
 - Use clean Markdown structure with LaTeX where equations materially help.
 - Include at minimum:

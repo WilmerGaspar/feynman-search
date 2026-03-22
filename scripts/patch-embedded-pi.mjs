@@ -9,6 +9,7 @@ const piPackageRoot = resolve(appRoot, "node_modules", "@mariozechner", "pi-codi
 const packageJsonPath = resolve(piPackageRoot, "package.json");
 const cliPath = resolve(piPackageRoot, "dist", "cli.js");
 const interactiveModePath = resolve(piPackageRoot, "dist", "modes", "interactive", "interactive-mode.js");
+const footerPath = resolve(piPackageRoot, "dist", "modes", "interactive", "components", "footer.js");
 const workspaceRoot = resolve(appRoot, ".pi", "npm", "node_modules");
 const webAccessPath = resolve(workspaceRoot, "pi-web-access", "index.ts");
 const sessionSearchIndexerPath = resolve(
@@ -99,6 +100,42 @@ if (existsSync(interactiveModePath)) {
 				.replace("`π - ${cwdBasename}`", "`feynman - ${cwdBasename}`"),
 			"utf8",
 		);
+	}
+}
+
+if (existsSync(footerPath)) {
+	const footerSource = readFileSync(footerPath, "utf8");
+	const footerOriginal = [
+		'        // Add thinking level indicator if model supports reasoning',
+		'        let rightSideWithoutProvider = modelName;',
+		'        if (state.model?.reasoning) {',
+		'            const thinkingLevel = state.thinkingLevel || "off";',
+		'            rightSideWithoutProvider =',
+		'                thinkingLevel === "off" ? `${modelName} • thinking off` : `${modelName} • ${thinkingLevel}`;',
+		'        }',
+		'        // Prepend the provider in parentheses if there are multiple providers and there\'s enough room',
+		'        let rightSide = rightSideWithoutProvider;',
+		'        if (this.footerData.getAvailableProviderCount() > 1 && state.model) {',
+		'            rightSide = `(${state.model.provider}) ${rightSideWithoutProvider}`;',
+	].join("\n");
+	const footerReplacement = [
+		'        // Add thinking level indicator if model supports reasoning',
+		'        const modelLabel = theme.fg("accent", modelName);',
+		'        let rightSideWithoutProvider = modelLabel;',
+		'        if (state.model?.reasoning) {',
+		'            const thinkingLevel = state.thinkingLevel || "off";',
+		'            const separator = theme.fg("dim", " • ");',
+		'            rightSideWithoutProvider = thinkingLevel === "off"',
+		'                ? `${modelLabel}${separator}${theme.fg("muted", "thinking off")}`',
+		'                : `${modelLabel}${separator}${theme.getThinkingBorderColor(thinkingLevel)(thinkingLevel)}`;',
+		'        }',
+		'        // Prepend the provider in parentheses if there are multiple providers and there\'s enough room',
+		'        let rightSide = rightSideWithoutProvider;',
+		'        if (this.footerData.getAvailableProviderCount() > 1 && state.model) {',
+		'            rightSide = `${theme.fg("muted", `(${state.model.provider})`)} ${rightSideWithoutProvider}`;',
+	].join("\n");
+	if (footerSource.includes(footerOriginal)) {
+		writeFileSync(footerPath, footerSource.replace(footerOriginal, footerReplacement), "utf8");
 	}
 }
 

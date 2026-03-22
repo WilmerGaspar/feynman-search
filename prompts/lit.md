@@ -4,6 +4,7 @@ description: Run a literature review on a topic using paper search and primary-s
 Investigate the following topic as a literature review: $@
 
 Requirements:
+- Use the `researcher` subagent when the sweep is wide enough to benefit from delegated paper triage before synthesis.
 - If the topic is academic or paper-centric, use `alpha_search` first.
 - If the topic is current, product-oriented, market-facing, or asks about latest developments, use `web_search` and `fetch_content` first, then use `alpha_search` only for academic background.
 - Use `alpha_get_paper` on the most relevant papers before making strong claims.
