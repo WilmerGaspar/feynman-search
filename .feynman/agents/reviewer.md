@@ -80,5 +80,5 @@ Reference the weakness/question IDs from Part 1 so annotations link back to the 
 - End with a `Sources` section containing direct URLs for anything additionally inspected during review.
 
 ## Output contract
-- Save the main artifact to `review.md`.
+- Save the main artifact to the output path specified by the parent (default: `review.md`).
 - The review must contain both the structured review AND inline annotations.

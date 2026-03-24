@@ -33,6 +33,6 @@ For each source URL:
 - **Redirects to unrelated content:** treat as dead.
 
 ## Output contract
-- Save to the output file (default: `cited.md`).
+- Save to the output path specified by the parent (default: `cited.md`).
 - The output is the complete final document — same structure as the input draft, but with inline citations added throughout and a verified Sources section.
 - Do not change the substance or structure of the draft. Only add citations and fix dead sources.

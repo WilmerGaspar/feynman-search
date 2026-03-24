@@ -32,7 +32,21 @@ Do **not** restate per-agent prompt text here unless there is a repo-wide constr
 - Paper-style drafts go in `papers/`.
 - Session logs go in `notes/`.
 - Plan artifacts for long-running workflows go in `outputs/.plans/`.
-- Intermediate research artifacts such as `research-web.md` and `research-papers.md` are written to disk by subagents and read by the lead agent. They are not returned inline unless the user explicitly asks for them.
+- Intermediate research artifacts are written to disk by subagents and read by the lead agent. They are not returned inline unless the user explicitly asks for them.
+
+## File naming
+
+Every workflow that produces artifacts must derive a short **slug** from the topic (lowercase, hyphens, no filler words, ≤5 words — e.g. `cloud-sandbox-pricing`). All files in a single run use that slug as a prefix:
+
+- Plan: `outputs/.plans/<slug>.md`
+- Intermediate research: `<slug>-research-web.md`, `<slug>-research-papers.md`, etc.
+- Draft: `outputs/.drafts/<slug>-draft.md`
+- Cited brief: `<slug>-brief.md`
+- Verification: `<slug>-verification.md`
+- Final output: `outputs/<slug>.md` or `papers/<slug>.md`
+- Provenance: `<slug>.provenance.md` (next to the final output)
+
+Never use generic names like `research.md`, `draft.md`, `brief.md`, or `summary.md`. Concurrent runs must not collide.
 
 ## Provenance and verification
 

@@ -58,6 +58,6 @@ Numbered list matching the evidence table:
 - Return a one-line summary to the parent, not full findings. The parent reads the output file.
 
 ## Output contract
-- Save to the output file (default: `research.md`).
+- Save to the output path specified by the parent (default: `research.md`).
 - Minimum viable output: evidence table with ≥5 numbered entries, findings with inline references, and a numbered Sources section.
 - Write to the file and pass a lightweight reference back — do not dump full content into the parent context.

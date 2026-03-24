@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { FEYNMAN_LOGO_HTML } from "../logo.mjs";
@@ -54,6 +54,45 @@ const piMemoryPath = resolve(workspaceRoot, "@samfp", "pi-memory", "src", "index
 const settingsPath = resolve(appRoot, ".feynman", "settings.json");
 const workspaceDir = resolve(appRoot, ".feynman", "npm");
 const workspacePackageJsonPath = resolve(workspaceDir, "package.json");
+const workspaceArchivePath = resolve(appRoot, ".feynman", "runtime-workspace.tgz");
+
+function parsePackageName(spec) {
+	const match = spec.match(/^(@?[^@]+(?:\/[^@]+)?)(?:@.+)?$/);
+	return match?.[1] ?? spec;
+}
+
+function restorePackagedWorkspace(packageSpecs) {
+	if (!existsSync(workspaceArchivePath)) return false;
+
+	rmSync(workspaceDir, { recursive: true, force: true });
+	mkdirSync(resolve(appRoot, ".feynman"), { recursive: true });
+
+	const result = spawnSync("tar", ["-xzf", workspaceArchivePath, "-C", resolve(appRoot, ".feynman")], {
+		stdio: ["ignore", "ignore", "pipe"],
+		timeout: 300000,
+	});
+
+	if (result.status !== 0) {
+		if (result.stderr?.length) process.stderr.write(result.stderr);
+		return false;
+	}
+
+	return packageSpecs.every((spec) => existsSync(resolve(workspaceRoot, parsePackageName(spec))));
+}
+
+function refreshPackagedWorkspace(packageSpecs) {
+	const result = spawnSync("npm", ["install", "--prefer-offline", "--no-audit", "--no-fund", "--loglevel", "error", "--prefix", workspaceDir, ...packageSpecs], {
+		stdio: ["ignore", "ignore", "pipe"],
+		timeout: 300000,
+	});
+
+	if (result.status !== 0) {
+		if (result.stderr?.length) process.stderr.write(result.stderr);
+		return false;
+	}
+
+	return true;
+}
 
 function resolveExecutable(name, fallbackPaths = []) {
 	for (const candidate of fallbackPaths) {
@@ -82,7 +121,8 @@ function ensurePackageWorkspace() {
 		: [];
 
 	if (packageSpecs.length === 0) return;
-	if (existsSync(resolve(workspaceRoot, packageSpecs[0]))) return;
+	if (existsSync(resolve(workspaceRoot, parsePackageName(packageSpecs[0])))) return;
+	if (restorePackagedWorkspace(packageSpecs) && refreshPackagedWorkspace(packageSpecs)) return;
 
 	mkdirSync(workspaceDir, { recursive: true });
 	writeFileSync(

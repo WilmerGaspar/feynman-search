@@ -14,6 +14,7 @@
     "dist/",
     "metadata/",
     ".feynman/agents/",
+    ".feynman/runtime-workspace.tgz",
     ".feynman/settings.json",
     ".feynman/SYSTEM.md",
     ".feynman/themes/",
@@ -30,6 +31,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsx src/index.ts",
+    "prepack": "node ./scripts/prepare-runtime-workspace.mjs",
     "postinstall": "node ./scripts/patch-embedded-pi.mjs",
     "start": "tsx src/index.ts",
     "start:dist": "node ./bin/feynman.js",

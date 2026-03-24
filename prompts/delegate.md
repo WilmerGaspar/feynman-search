@@ -17,5 +17,5 @@ Delegate the following task to a remote Agent Computer machine: $@
    - What artifact to produce when done (summary file)
    - Any tools or data sources to use
 6. **Monitor** — Use `computer agent watch <machine> --session <session_id>` to stream progress. Report status to the user at meaningful milestones.
-7. **Retrieve results** — When the remote agent finishes, pull the summary back with `computer agent prompt <machine> "cat /workspace/outputs/summary.md" --session <session_id>`. Present results to the user.
+7. **Retrieve results** — When the remote agent finishes, pull the results back with `computer agent prompt <machine> "cat /workspace/outputs/<slug>.md" --session <session_id>` (derive the slug from the task topic). Present results to the user.
 8. **Clean up** — Close the session with `computer agent close <machine> --session <session_id>` unless the user wants to continue.

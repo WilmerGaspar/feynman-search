@@ -17,7 +17,7 @@ Analyze the research question using extended thinking. Develop a research strate
 - Source types and time periods that matter
 - Acceptance criteria: what evidence would make the answer "sufficient"
 
-Write the plan to `outputs/.plans/deepresearch-plan.md` as a self-contained artifact:
+Derive a short slug from the topic (lowercase, hyphens, no filler words, ≤5 words — e.g. "cloud-sandbox-pricing" not "deepresearch-plan"). Write the plan to `outputs/.plans/<slug>.md` as a self-contained artifact. Use this same slug for all artifacts in this run.
 
 ```markdown
 # Research Plan: [topic]
@@ -38,7 +38,7 @@ Write the plan to `outputs/.plans/deepresearch-plan.md` as a self-contained arti
 (Updated as the workflow progresses)
 ```
 
-Also save the plan with `memory_remember` (type: `fact`, key: `deepresearch.plan`) so it survives context truncation.
+Also save the plan with `memory_remember` (type: `fact`, key: `deepresearch.<slug>.plan`) so it survives context truncation.
 
 Present the plan to the user and ask them to confirm before proceeding. If the user wants changes, revise the plan first.
 
@@ -66,8 +66,8 @@ Assign each researcher a clearly disjoint dimension — different source types, 
 ```
 {
   tasks: [
-    { agent: "researcher", task: "...", output: "research-web.md" },
-    { agent: "researcher", task: "...", output: "research-papers.md" }
+    { agent: "researcher", task: "...", output: "<slug>-research-web.md" },
+    { agent: "researcher", task: "...", output: "<slug>-research-papers.md" }
   ],
   concurrency: 4,
   failFast: false
@@ -86,7 +86,7 @@ After researchers return, read their output files and critically assess:
 
 If gaps are significant, spawn another targeted batch of researchers. No fixed cap on rounds — iterate until evidence is sufficient or sources are exhausted.
 
-Update the plan artifact (`outputs/.plans/deepresearch-plan.md`) decision log after each round.
+Update the plan artifact (`outputs/.plans/<slug>.md`) decision log after each round.
 
 Most topics need 1-2 rounds. Stop when additional rounds would not materially change conclusions.
 
@@ -111,14 +111,14 @@ Unresolved issues, disagreements between sources, gaps in evidence.
 
 When the research includes quantitative data (benchmarks, performance comparisons, trends), generate charts using `pi-charts`. Use Mermaid diagrams for architectures and processes. Every visual must have a caption and reference the underlying data.
 
-Save this draft to a temp file (e.g., `draft.md` in the chain artifacts dir or a temp path).
+Save this draft to `outputs/.drafts/<slug>-draft.md`.
 
 ## 6. Cite
 
 Spawn the `verifier` agent to post-process YOUR draft. The verifier agent adds inline citations, verifies every source URL, and produces the final output:
 
 ```
-{ agent: "verifier", task: "Add inline citations to draft.md using the research files as source material. Verify every URL.", output: "brief.md" }
+{ agent: "verifier", task: "Add inline citations to <slug>-draft.md using the research files as source material. Verify every URL.", output: "<slug>-brief.md" }
 ```
 
 The verifier agent does not rewrite the report — it only anchors claims to sources and builds the numbered Sources section.
@@ -132,7 +132,7 @@ Spawn the `reviewer` agent against the cited draft. The reviewer checks for:
 - Overstated confidence relative to evidence quality
 
 ```
-{ agent: "reviewer", task: "Verify brief.md — flag any claims that lack sufficient source backing, identify logical gaps, and check that confidence levels match evidence strength. This is a verification pass, not a peer review.", output: "verification.md" }
+{ agent: "reviewer", task: "Verify <slug>-brief.md — flag any claims that lack sufficient source backing, identify logical gaps, and check that confidence levels match evidence strength. This is a verification pass, not a peer review.", output: "<slug>-verification.md" }
 ```
 
 If the reviewer flags FATAL issues, fix them in the brief before delivering. MAJOR issues get noted in the Open Questions section. MINOR issues are accepted.
@@ -143,9 +143,9 @@ Copy the final cited and verified output to the appropriate folder:
 - Paper-style drafts → `papers/`
 - Everything else → `outputs/`
 
-Use a descriptive filename based on the topic.
+Save the final output as `<slug>.md` (in `outputs/` or `papers/` per the rule above).
 
-Write a provenance record alongside the main artifact as `<filename>.provenance.md`:
+Write a provenance record alongside it as `<slug>.provenance.md`:
 
 ```markdown
 # Provenance: [topic]
@@ -156,8 +156,8 @@ Write a provenance record alongside the main artifact as `<filename>.provenance.
 - **Sources accepted:** [sources that survived citation verification]
 - **Sources rejected:** [dead links, unverifiable, or removed]
 - **Verification:** [PASS / PASS WITH NOTES — summary of reviewer findings]
-- **Plan:** outputs/.plans/deepresearch-plan.md
-- **Research files:** [list of intermediate research-*.md files]
+- **Plan:** outputs/.plans/<slug>.md
+- **Research files:** [list of intermediate <slug>-research-*.md files]
 ```
 
 ## Background execution

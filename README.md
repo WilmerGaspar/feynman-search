@@ -85,7 +85,7 @@ feynman search status               # web search config
 
 ## How it works
 
-Built on [Pi](https://github.com/mariozechner/pi-coding-agent) for the agent runtime, [alphaXiv](https://www.alphaxiv.org/) for paper search and analysis, [Docker](https://www.docker.com/) for isolated local execution, and [Agent Computer](https://agentcomputer.ai) for secure cloud workloads
+Built on [Pi](https://github.com/badlogic/pi-mono) for the agent runtime, [alphaXiv](https://www.alphaxiv.org/) for paper search and analysis, [Docker](https://www.docker.com/) for isolated local execution, and [Agent Computer](https://agentcomputer.ai) for secure cloud workloads
 
 Every output is source-grounded — claims link to papers, docs, or repos with direct URLs
 
