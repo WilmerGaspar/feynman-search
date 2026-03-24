@@ -10,6 +10,7 @@ const workspaceNodeModulesDir = resolve(workspaceDir, "node_modules");
 const manifestPath = resolve(workspaceDir, ".runtime-manifest.json");
 const workspacePackageJsonPath = resolve(workspaceDir, "package.json");
 const workspaceArchivePath = resolve(feynmanDir, "runtime-workspace.tgz");
+const PRUNE_VERSION = 1;
 
 function readPackageSpecs() {
 	const settings = JSON.parse(readFileSync(settingsPath, "utf8"));
@@ -44,7 +45,8 @@ function workspaceIsCurrent(packageSpecs) {
 		if (
 			manifest.nodeAbi !== process.versions.modules ||
 			manifest.platform !== process.platform ||
-			manifest.arch !== process.arch
+			manifest.arch !== process.arch ||
+			manifest.pruneVersion !== PRUNE_VERSION
 		) {
 			return false;
 		}
@@ -102,12 +104,22 @@ function writeManifest(packageSpecs) {
 					nodeVersion: process.version,
 					platform: process.platform,
 					arch: process.arch,
+					pruneVersion: PRUNE_VERSION,
 				},
 			null,
 			2,
 		) + "\n",
 		"utf8",
 	);
+}
+
+function pruneWorkspace() {
+	const result = spawnSync(process.execPath, [resolve(appRoot, "scripts", "prune-runtime-deps.mjs"), workspaceDir], {
+		stdio: "inherit",
+	});
+	if (result.status !== 0) {
+		process.exit(result.status ?? 1);
+	}
 }
 
 function archiveIsCurrent() {
@@ -144,6 +156,7 @@ if (workspaceIsCurrent(packageSpecs)) {
 
 console.log("[feynman] preparing vendored runtime workspace...");
 prepareWorkspace(packageSpecs);
+pruneWorkspace();
 writeManifest(packageSpecs);
 createWorkspaceArchive();
 console.log("[feynman] vendored runtime workspace ready");

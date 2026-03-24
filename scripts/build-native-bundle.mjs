@@ -136,6 +136,7 @@ function ensureBundledWorkspace() {
 }
 
 function copyPackageFiles(appDir) {
+	const releaseDir = resolve(appRoot, "dist", "release");
 	cpSync(resolve(appRoot, "package.json"), resolve(appDir, "package.json"));
 	for (const entry of packageJson.files) {
 		const normalized = entry.endsWith("/") ? entry.slice(0, -1) : entry;
@@ -143,7 +144,10 @@ function copyPackageFiles(appDir) {
 		if (!existsSync(source)) continue;
 		const destination = resolve(appDir, normalized);
 		mkdirSync(dirname(destination), { recursive: true });
-		cpSync(source, destination, { recursive: true });
+		cpSync(source, destination, {
+			recursive: true,
+			filter: (path) => path !== releaseDir && !path.startsWith(`${releaseDir}/`),
+		});
 	}
 
 	cpSync(packageLockPath, resolve(appDir, "package-lock.json"));
@@ -159,6 +163,9 @@ function installAppDependencies(appDir, stagingRoot) {
 
 	run("npm", ["ci", "--omit=dev", "--ignore-scripts", "--no-audit", "--no-fund", "--loglevel", "error"], {
 		cwd: depsDir,
+	});
+	run(process.execPath, [resolve(appRoot, "scripts", "prune-runtime-deps.mjs"), depsDir], {
+		cwd: appRoot,
 	});
 
 	cpSync(resolve(depsDir, "node_modules"), resolve(appDir, "node_modules"), { recursive: true });
