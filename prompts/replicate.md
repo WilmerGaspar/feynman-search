@@ -8,7 +8,7 @@ Design a replication plan for: $@
 
 ## Workflow
 
-1. **Extract** — Use the `researcher` subagent to pull implementation details from the target paper and any linked code.
+1. **Extract** — Use the `researcher` subagent to pull implementation details from the target paper and any linked code. If `CHANGELOG.md` exists, read the most recent relevant entries before planning or resuming.
 2. **Plan** — Determine what code, datasets, metrics, and environment are needed. Be explicit about what is verified, what is inferred, what is still missing, and which checks or test oracles will be used to decide whether the replication succeeded.
 3. **Environment** — Before running anything, ask the user where to execute:
    - **Local** — run in the current working directory
@@ -16,6 +16,7 @@ Design a replication plan for: $@
    - **Docker** — run experiment code inside an isolated Docker container
    - **Plan only** — produce the replication plan without executing
 4. **Execute** — If the user chose an execution environment, implement and run the replication steps there. Save notes, scripts, raw outputs, and results to disk in a reproducible layout. Do not call the outcome replicated unless the planned checks actually passed.
-5. **Report** — End with a `Sources` section containing paper and repository URLs.
+5. **Log** — For multi-step or resumable replication work, append concise entries to `CHANGELOG.md` after meaningful progress, failed attempts, major verification outcomes, and before stopping. Record the active objective, what changed, what was checked, and the next step.
+6. **Report** — End with a `Sources` section containing paper and repository URLs.
 
 Do not install packages, run training, or execute experiments without confirming the execution environment first.

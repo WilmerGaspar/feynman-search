@@ -20,6 +20,7 @@ They are defined in `.feynman/agents/` and invoked via the Pi `subagent` tool.
 Keep this file focused on cross-agent repo conventions:
 
 - output locations and file naming expectations
+- workspace-level continuity expectations for long-running work
 - provenance and verification requirements
 - handoff rules between the lead agent and subagents
 
@@ -30,9 +31,12 @@ Do **not** restate per-agent prompt text here unless there is a repo-wide constr
 - Research outputs go in `outputs/`.
 - Paper-style drafts go in `papers/`.
 - Session logs go in `notes/`.
+- The workspace-level lab notebook lives at `CHANGELOG.md`.
 - Plan artifacts for long-running workflows go in `outputs/.plans/`.
 - Intermediate research artifacts are written to disk by subagents and read by the lead agent. They are not returned inline unless the user explicitly asks for them.
 - Long-running workflows should treat the plan artifact as an externalized working memory, not a static outline. Keep task status and verification state there as the run evolves.
+- Long-running or resumable workflows should also treat `CHANGELOG.md` as the chronological lab notebook: what changed, what failed, what was verified, and what should happen next.
+- Do not create or update `CHANGELOG.md` for trivial one-shot tasks.
 
 ## File naming
 
@@ -47,6 +51,14 @@ Every workflow that produces artifacts must derive a short **slug** from the top
 - Provenance: `<slug>.provenance.md` (next to the final output)
 
 Never use generic names like `research.md`, `draft.md`, `brief.md`, or `summary.md`. Concurrent runs must not collide.
+
+## Workspace changelog
+
+- `CHANGELOG.md` is a lab notebook, not release notes.
+- Read `CHANGELOG.md` before resuming substantial work when it exists.
+- Append concise entries after meaningful progress, failed approaches, major verification results, or new blockers.
+- Each entry should identify the active slug or objective and end with the next recommended step.
+- Mark verification state honestly with labels such as `verified`, `unverified`, `blocked`, or `inferred` only when they match the underlying evidence.
 
 ## Provenance and verification
 

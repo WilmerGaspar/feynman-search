@@ -18,6 +18,7 @@ Analyze the research question using extended thinking. Develop a research strate
 - Acceptance criteria: what evidence would make the answer "sufficient"
 
 Derive a short slug from the topic (lowercase, hyphens, no filler words, ≤5 words — e.g. "cloud-sandbox-pricing" not "deepresearch-plan"). Write the plan to `outputs/.plans/<slug>.md` as a self-contained artifact. Use this same slug for all artifacts in this run.
+If `CHANGELOG.md` exists, read the most recent relevant entries before finalizing the plan. Once the workflow becomes multi-round or spans enough work to merit resume support, append concise entries to `CHANGELOG.md` after meaningful progress and before stopping.
 
 ```markdown
 # Research Plan: [topic]
@@ -100,6 +101,7 @@ After researchers return, read their output files and critically assess:
 If gaps are significant, spawn another targeted batch of researchers. No fixed cap on rounds — iterate until evidence is sufficient or sources are exhausted.
 
 Update the plan artifact (`outputs/.plans/<slug>.md`) task ledger, verification log, and decision log after each round.
+When the work spans multiple rounds, also append a concise chronological entry to `CHANGELOG.md` covering what changed, what was verified, what remains blocked, and the next recommended step.
 
 Most topics need 1-2 rounds. Stop when additional rounds would not materially change conclusions.
 

@@ -21,6 +21,8 @@ feynman setup
 feynman
 ```
 
+Feynman works directly inside your folder or repo. For long-running work, keep the stable repo contract in `AGENTS.md`, the current task brief in `outputs/.plans/`, and the chronological lab notebook in `CHANGELOG.md`.
+
 ---
 
 ## What you type → what happens

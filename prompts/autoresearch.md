@@ -11,6 +11,7 @@ This command uses pi-autoresearch.
 ## Step 1: Gather
 
 If `autoresearch.md` and `autoresearch.jsonl` already exist, ask the user if they want to resume or start fresh.
+If `CHANGELOG.md` exists, read the most recent relevant entries before resuming.
 
 Otherwise, collect the following from the user before doing anything else:
 - What to optimize (test speed, bundle size, training loss, build time, etc.)
@@ -48,6 +49,7 @@ Ask the user to confirm. Do not start the loop without explicit approval.
 Initialize the session: create `autoresearch.md`, `autoresearch.sh`, run the baseline, and start looping.
 
 Each iteration: edit → commit → `run_experiment` → `log_experiment` → keep or revert → repeat. Do not stop unless interrupted or `maxIterations` is reached.
+After the baseline and after meaningful iteration milestones, append a concise entry to `CHANGELOG.md` summarizing what changed, what metric result was observed, what failed, and the next step.
 
 ## Key tools
 
