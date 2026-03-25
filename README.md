@@ -26,6 +26,12 @@ irm https://feynman.is/install.ps1 | iex
 ```bash
 # npm fallback
 npm install -g @companion-ai/feynman
+
+# pnpm fallback
+pnpm add -g @companion-ai/feynman
+
+# bun fallback
+bun add -g @companion-ai/feynman
 ```
 
 Then run `feynman setup` to configure your model and get started.

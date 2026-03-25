@@ -45,7 +45,23 @@ New-Item -ItemType Directory -Path $tmpDir | Out-Null
 try {
   $archivePath = Join-Path $tmpDir $archiveName
   Write-Host "==> Downloading $archiveName"
-  Invoke-WebRequest -Uri $downloadUrl -OutFile $archivePath
+  try {
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $archivePath
+  } catch {
+    throw @"
+Failed to download $archiveName from:
+  $downloadUrl
+
+The win32-$archSuffix bundle is missing from the GitHub release.
+This usually means the release exists, but not all platform bundles were uploaded.
+
+Workarounds:
+  - try again after the release finishes publishing
+  - install via npm instead: npm install -g @companion-ai/feynman
+  - install via pnpm instead: pnpm add -g @companion-ai/feynman
+  - install via bun instead: bun add -g @companion-ai/feynman
+"@
+  }
 
   New-Item -ItemType Directory -Path $installRoot -Force | Out-Null
   if (Test-Path $bundleDir) {

@@ -15,8 +15,7 @@ Feynman stores all configuration and state under `~/.feynman/`. This directory i
 ├── web-search.json     # Web search routing config
 ├── auth/               # OAuth tokens and API keys
 ├── sessions/           # Persisted conversation history
-├── packages/           # Installed optional packages
-└── bin/                # Binary (when installed via the native installer)
+└── packages/           # Installed optional packages
 ```
 
 The `settings.json` file is the primary configuration file. It is created by `feynman setup` and can be edited manually. A typical configuration looks like:

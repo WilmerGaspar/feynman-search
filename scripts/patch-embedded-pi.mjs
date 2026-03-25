@@ -56,6 +56,61 @@ const workspaceDir = resolve(appRoot, ".feynman", "npm");
 const workspacePackageJsonPath = resolve(workspaceDir, "package.json");
 const workspaceArchivePath = resolve(appRoot, ".feynman", "runtime-workspace.tgz");
 
+function createInstallCommand(packageManager, packageSpecs) {
+	switch (packageManager) {
+		case "npm":
+			return ["install", "--prefer-offline", "--no-audit", "--no-fund", "--loglevel", "error", ...packageSpecs];
+		case "pnpm":
+			return ["add", "--prefer-offline", "--reporter", "silent", ...packageSpecs];
+		case "bun":
+			return ["add", "--silent", ...packageSpecs];
+		default:
+			throw new Error(`Unsupported package manager: ${packageManager}`);
+	}
+}
+
+let cachedPackageManager = undefined;
+
+function resolvePackageManager() {
+	if (cachedPackageManager !== undefined) return cachedPackageManager;
+
+	const requested = process.env.FEYNMAN_PACKAGE_MANAGER?.trim();
+	const candidates = requested ? [requested] : ["npm", "pnpm", "bun"];
+	for (const candidate of candidates) {
+		if (resolveExecutable(candidate)) {
+			cachedPackageManager = candidate;
+			return candidate;
+		}
+	}
+
+	cachedPackageManager = null;
+	return null;
+}
+
+function installWorkspacePackages(packageSpecs) {
+	const packageManager = resolvePackageManager();
+	if (!packageManager) {
+		process.stderr.write(
+			"[feynman] no supported package manager found; install npm, pnpm, or bun, or set FEYNMAN_PACKAGE_MANAGER.\n",
+		);
+		return false;
+	}
+
+	const result = spawnSync(packageManager, createInstallCommand(packageManager, packageSpecs), {
+		cwd: workspaceDir,
+		stdio: ["ignore", "ignore", "pipe"],
+		timeout: 300000,
+	});
+
+	if (result.status !== 0) {
+		if (result.stderr?.length) process.stderr.write(result.stderr);
+		process.stderr.write(`[feynman] ${packageManager} failed while setting up bundled packages.\n`);
+		return false;
+	}
+
+	return true;
+}
+
 function parsePackageName(spec) {
 	const match = spec.match(/^(@?[^@]+(?:\/[^@]+)?)(?:@.+)?$/);
 	return match?.[1] ?? spec;
@@ -81,17 +136,7 @@ function restorePackagedWorkspace(packageSpecs) {
 }
 
 function refreshPackagedWorkspace(packageSpecs) {
-	const result = spawnSync("npm", ["install", "--prefer-offline", "--no-audit", "--no-fund", "--loglevel", "error", "--prefix", workspaceDir, ...packageSpecs], {
-		stdio: ["ignore", "ignore", "pipe"],
-		timeout: 300000,
-	});
-
-	if (result.status !== 0) {
-		if (result.stderr?.length) process.stderr.write(result.stderr);
-		return false;
-	}
-
-	return true;
+	return installWorkspacePackages(packageSpecs);
 }
 
 function resolveExecutable(name, fallbackPaths = []) {
@@ -139,17 +184,13 @@ function ensurePackageWorkspace() {
 		process.stderr.write(`\r${frames[frame++ % frames.length]} setting up feynman... ${elapsed}s`);
 	}, 80);
 
-	const result = spawnSync("npm", ["install", "--prefer-offline", "--no-audit", "--no-fund", "--loglevel", "error", "--prefix", workspaceDir, ...packageSpecs], {
-		stdio: ["ignore", "ignore", "pipe"],
-		timeout: 300000,
-	});
+	const result = installWorkspacePackages(packageSpecs);
 
 	clearInterval(spinner);
 	const elapsed = Math.round((Date.now() - start) / 1000);
 
-	if (result.status !== 0) {
+	if (!result) {
 		process.stderr.write(`\r✗ setup failed (${elapsed}s)\n`);
-		if (result.stderr?.length) process.stderr.write(result.stderr);
 	} else {
 		process.stderr.write(`\r✓ feynman ready (${elapsed}s)\n`);
 	}

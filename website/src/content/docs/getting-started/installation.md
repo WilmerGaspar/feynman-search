@@ -5,7 +5,7 @@ section: Getting Started
 order: 1
 ---
 
-Feynman ships as a standalone binary for macOS and Linux, and as an npm package for all platforms including Windows. The recommended approach is the one-line installer, which downloads a prebuilt native binary with zero dependencies.
+Feynman ships as a standalone runtime bundle for macOS, Linux, and Windows, and as an npm package for environments where Node.js is already installed. The recommended approach is the one-line installer, which downloads a prebuilt native bundle with zero external runtime dependencies.
 
 ## One-line installer (recommended)
 
@@ -15,7 +15,7 @@ On **macOS or Linux**, open a terminal and run:
 curl -fsSL https://feynman.is/install | bash
 ```
 
-The installer detects your OS and architecture automatically. On macOS it supports both Intel and Apple Silicon. On Linux it supports x64 and arm64. The binary is installed to `~/.feynman/bin` and added to your `PATH`.
+The installer detects your OS and architecture automatically. On macOS it supports both Intel and Apple Silicon. On Linux it supports x64 and arm64. The launcher is installed to `~/.local/bin`, the bundled runtime is unpacked into `~/.local/share/feynman`, and your `PATH` is updated when needed.
 
 On **Windows**, open PowerShell as Administrator and run:
 
@@ -23,14 +23,21 @@ On **Windows**, open PowerShell as Administrator and run:
 irm https://feynman.is/install.ps1 | iex
 ```
 
-This installs the native Windows binary and adds Feynman to your user `PATH`. You can re-run either installer at any time to update to the latest version.
+This installs the Windows runtime bundle under `%LOCALAPPDATA%\Programs\feynman`, adds its launcher to your user `PATH`, and lets you re-run the installer at any time to update.
 
 ## npm / npx
 
-If you already have Node.js 18+ installed, you can install Feynman globally via npm:
+If you already have Node.js 20.18.1+ installed, you can install Feynman globally via npm:
 
 ```bash
 npm install -g @companion-ai/feynman
+```
+
+`pnpm` and `bun` are supported as well:
+
+```bash
+pnpm add -g @companion-ai/feynman
+bun add -g @companion-ai/feynman
 ```
 
 Or run it directly without installing:
@@ -39,7 +46,12 @@ Or run it directly without installing:
 npx @companion-ai/feynman
 ```
 
-The npm distribution bundles the same core runtime as the native installer but depends on Node.js being present on your system. The native installer is preferred because it ships a self-contained binary with faster startup.
+```bash
+pnpm dlx @companion-ai/feynman
+bunx @companion-ai/feynman
+```
+
+The npm distribution ships the same core application but depends on Node.js being present on your system. The standalone installer is preferred because it bundles its own Node runtime and works without a separate Node installation.
 
 ## Post-install setup
 

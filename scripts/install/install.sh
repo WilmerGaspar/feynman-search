@@ -222,7 +222,22 @@ trap cleanup EXIT INT TERM
 
 archive_path="$tmp_dir/$archive_name"
 step "Downloading ${archive_name}"
-download_file "$download_url" "$archive_path"
+if ! download_file "$download_url" "$archive_path"; then
+  cat >&2 <<EOF
+Failed to download ${archive_name} from:
+  ${download_url}
+
+The ${asset_target} bundle is missing from the GitHub release.
+This usually means the release exists, but not all platform bundles were uploaded.
+
+Workarounds:
+  - try again after the release finishes publishing
+  - install via npm instead: npm install -g @companion-ai/feynman
+  - install via pnpm instead: pnpm add -g @companion-ai/feynman
+  - install via bun instead: bun add -g @companion-ai/feynman
+EOF
+  exit 1
+fi
 
 mkdir -p "$INSTALL_APP_DIR"
 rm -rf "$INSTALL_APP_DIR/$bundle_name"
